@@ -3,6 +3,8 @@ interface EncryptionResult {
   iv: string;
   salt?: string;
 }
+var { crypto, webcrypto } = require('crypto');
+const { subtle } = webcrypto;
 
 /**
  * Encrypts a data object that can be any serializable value using
@@ -39,8 +41,8 @@ function encryptWithKey<R>(
 ): Promise<EncryptionResult> {
   const data = JSON.stringify(dataObj);
   const dataBuffer = Buffer.from(data, 'utf-8');
-  const vector = global.crypto.getRandomValues(new Uint8Array(16));
-  return global.crypto.subtle
+  const vector = crypto.getRandomValues(new Uint8Array(16));
+  return subtle
     .encrypt(
       {
         name: 'AES-GCM',
@@ -108,13 +110,13 @@ function keyFromPassword(password: string, salt: string): Promise<CryptoKey> {
   const passBuffer = Buffer.from(password, 'utf-8');
   const saltBuffer = Buffer.from(salt, 'base64');
 
-  return global.crypto.subtle
+  return subtle
     .importKey('raw', passBuffer, { name: 'PBKDF2' }, false, [
       'deriveBits',
       'deriveKey',
     ])
     .then(function (key) {
-      return global.crypto.subtle.deriveKey(
+      return subtle.deriveKey(
         {
           name: 'PBKDF2',
           salt: saltBuffer,
@@ -179,7 +181,7 @@ function unprefixedHex(num: number): string {
  */
 function generateSalt(byteCount = 32): string {
   const view = new Uint8Array(byteCount);
-  global.crypto.getRandomValues(view);
+  crypto.getRandomValues(view);
   // Uint8Array is a fixed length array and thus does not have methods like pop, etc
   // so TypeScript complains about casting it to an array. Array.from() works here for
   // getting the proper type, but it results in a functional difference. In order to
